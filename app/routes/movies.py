@@ -1,39 +1,52 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models.moviesModels import Movies
-
-fake_movie_db = [
-    {
-        'name': 'Star Wars: Episode IX - The Rise of Skywalker',
-        'plot': 'The surviving members of the resistance face the First Order once again.',
-        'genders': ['Action', 'Adventure', 'Fantasy'],
-        'casts': ['Daisy Ridley', 'Adam Driver']
-    }
-]
+from app.database.managers.movies import get_movie, get_movies, put_movie, delete_movie, insert_movie
+from app.models.moviesModels import MovieIn, MovieOut, MovieUpdate
 
 movies = APIRouter()
 
-@movies.get('/', response_model=List[Movies])
-async def index(): 
-        return fake_movie_db
+@movies.get('/', response_model=List[MovieOut])
+async def index():
+        movies = await get_movies()
+        if len(movies) == 0:
+                raise HTTPException(status_code=404, detail='There are no movies in the system') 
+        return movies 
+
+@movies.get('/{id}', response_model=MovieOut)
+async def index (id: int):
+        if id < 0: 
+                raise HTTPException(status_code=400, detail='Invalid id')
+        movie = await get_movie(id)
+        if not movie: 
+                raise HTTPException(status_code=404, detail='Not found')
+        return movie
 
 @movies.post('/', status_code=201)
-async def add_movie(payload: Movies):
-        movie = payload.model_dump()
-        fake_movie_db.append(movie)
-        return {'id': len(fake_movie_db) -1}
+async def add_movie(payload: MovieIn):
+        movie_id = await insert_movie(payload)
+        return {'id': movie_id, **payload.model_dump()}
 
 @movies.put('/{id}')
-async def update_movie(id: int, payload: Movies):
-        movieForEddit = payload.model_dump()
-        if id >= 0 and id <= len(fake_movie_db):
-                fake_movie_db[-id] = movieForEddit
-                return fake_movie_db[id]
-        raise HTTPException(status_code=404, detail="Movie with given id not found")
+async def update_movie(id: int, payload: MovieUpdate):
+        if id < 0: 
+                raise HTTPException(status_code=400, detail='Invalid id')
+        movie = await get_movie(id)
+        if not movie: 
+                raise HTTPException(status_code=404, detail='Not found')
+        
+        update_data = payload.model_dump(exclude_unset=True)
+        movie_in_db = MovieUpdate(**movie)
+        updated_movie = movie_in_db.model_copy(update=update_data)
+        await put_movie(id, updated_movie)
+        return {'message': "Movie updated"}
+        
 
 @movies.delete('/{id}')
-async def delete_movie(id: int):
-        if id >= 0 and id <= len(fake_movie_db): 
-                del fake_movie_db[-id]
-                return {'message': "Movie delete from databse"}
-        raise HTTPException(status_code=404, detail="Movie with given id not found")
+async def del_movie(id: int):
+        if id < 0: 
+                raise HTTPException(status_code=400, detail='Invalid id')
+        movie = await get_movie(id)
+        if not movie: 
+                raise HTTPException(status_code=404, detail='Not found')
+        await delete_movie(id)
+        return  {'message': "Movie deleted"}

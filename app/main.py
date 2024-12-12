@@ -5,8 +5,6 @@ from app.database.db import engine, metadata, database
 
 metadata.create_all(engine)
 
-app = FastAPI()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI): 
     
@@ -15,6 +13,8 @@ async def lifespan(app: FastAPI):
     yield 
     
     await database.disconnect()
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(movies)
 

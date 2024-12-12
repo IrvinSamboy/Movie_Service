@@ -4,7 +4,7 @@ from typing import List, Optional
 class MovieIn(BaseModel):
         name: str
         plot: str
-        genders: List[str]
+        gender: List[str]
         casts: List[str]
         
 class MovieOut(MovieIn): 
@@ -13,5 +13,5 @@ class MovieOut(MovieIn):
 class MovieUpdate(MovieIn):
         name: Optional[str] = None
         plot: Optional[str] = None
-        genders: Optional[List[str]] = None
+        gender: Optional[List[str]] = None
         casts: Optional[List[str]] = None

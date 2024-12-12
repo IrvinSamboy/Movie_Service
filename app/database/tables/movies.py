@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, MetaData, String, Table, create_engine, ARRAY
-from database import metadata
+from app.database.db import metadata
 
 movies = Table(
     'movies',
